@@ -54,7 +54,6 @@ async def ask(ctx, *, prompt: str):
         return
     await ctx.send(f"Sending to `{model}`...")
     response = await generate_response(model, prompt)
-    await ctx.send(f"**{model} says:**
-{response}")
+    await ctx.send(f"**{model} says:**\n{response}")
 
 bot.run(TOKEN)
