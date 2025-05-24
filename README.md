@@ -1,4 +1,4 @@
-# Discord Bot with Ollama Model Selector
+# DiscoLlama 
 
 This bot lets you chat with models served by [Ollama](https://ollama.com/) and select the model using Discord buttons!
 
