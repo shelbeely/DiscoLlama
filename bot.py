@@ -1,5 +1,4 @@
 import discord
-from discord.ext import commands
 from ollama_client import list_models, start_model, generate_response
 import os
 from dotenv import load_dotenv
@@ -8,9 +7,10 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
-intents.message_content = True  # Optional unless you want legacy messages
+intents.message_content = True  # Only needed if you plan to read message content
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+print(f"discord.py version: {discord.__version__}")
+bot = discord.Bot(intents=intents)
 
 user_model_choice = {}
 
@@ -44,9 +44,7 @@ class ModelButton(discord.ui.Button):
 
 @bot.event
 async def on_ready():
-    synced = await bot.sync_commands()
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
-    print(f"Synced {len(synced)} slash command(s)")
 
 @bot.slash_command(name="choose", description="Choose your Ollama model")
 async def choose_model(ctx: discord.ApplicationContext):
@@ -59,7 +57,10 @@ async def choose_model(ctx: discord.ApplicationContext):
     await ctx.respond("Select your model:", view=view, ephemeral=True)
 
 @bot.slash_command(name="ask", description="Ask your selected Ollama model something")
-async def ask(ctx: discord.ApplicationContext, prompt: discord.Option(str, "Your question")):
+async def ask(
+    ctx: discord.ApplicationContext,
+    prompt: discord.Option(str, "Your question")
+):
     model = user_model_choice.get(ctx.author.id)
     if not model:
         await ctx.respond("No model set for you! Use `/choose` first.", ephemeral=True)
