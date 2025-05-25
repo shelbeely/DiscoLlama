@@ -1,4 +1,5 @@
 import discord
+from discord.ext import commands
 from ollama_client import list_models, start_model, generate_response
 import os
 from dotenv import load_dotenv
@@ -7,10 +8,9 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
-intents.message_content = True  # Make sure this is enabled!
-print(f"discord.py version: {discord.__version__}")
-print(f"discord.Bot exists: {'Bot' in dir(discord)}")
-bot = discord.Bot(intents=intents)
+intents.message_content = True  # Optional unless you want legacy messages
+
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 user_model_choice = {}
 
@@ -34,8 +34,9 @@ class ModelButton(discord.ui.Button):
 
         await interaction.response.defer(ephemeral=True)
         await interaction.followup.send(f"Checking if `{self.model}` is available...", ephemeral=True)
+
         status = await start_model(self.model)
-        if status == True or status == "success":
+        if status is True or status == "success":
             user_model_choice[self.user_id] = self.model
             await interaction.followup.send(f"Model set to `{self.model}` for you!", ephemeral=True)
         else:
@@ -43,26 +44,29 @@ class ModelButton(discord.ui.Button):
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
-    print(f"Logged in as {bot.user} (ID: {bot.user.id}) - Slash commands synced!")
+    synced = await bot.sync_commands()
+    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    print(f"Synced {len(synced)} slash command(s)")
 
-@bot.tree.command(name="choose", description="Choose your Ollama model")
-async def choose_model(interaction: discord.Interaction):
+@bot.slash_command(name="choose", description="Choose your Ollama model")
+async def choose_model(ctx: discord.ApplicationContext):
     models = await list_models()
     if not models:
-        await interaction.response.send_message("No models found in Ollama!", ephemeral=True)
+        await ctx.respond("No models found in Ollama!", ephemeral=True)
         return
-    view = ModelSelectView(models=models, user_id=interaction.user.id)
-    await interaction.response.send_message("Select your model:", view=view, ephemeral=True)
 
-@bot.tree.command(name="ask", description="Ask your selected Ollama model something")
-async def ask(interaction: discord.Interaction, prompt: str):
-    model = user_model_choice.get(interaction.user.id)
+    view = ModelSelectView(models=models, user_id=ctx.author.id)
+    await ctx.respond("Select your model:", view=view, ephemeral=True)
+
+@bot.slash_command(name="ask", description="Ask your selected Ollama model something")
+async def ask(ctx: discord.ApplicationContext, prompt: discord.Option(str, "Your question")):
+    model = user_model_choice.get(ctx.author.id)
     if not model:
-        await interaction.response.send_message("No model set for you! Use `/choose` first.", ephemeral=True)
+        await ctx.respond("No model set for you! Use `/choose` first.", ephemeral=True)
         return
-    await interaction.response.defer()
+
+    await ctx.defer()
     response = await generate_response(model, prompt)
-    await interaction.followup.send(f"**{model} says:**\n{response}")
+    await ctx.respond(f"**{model} says:**\n{response}")
 
 bot.run(TOKEN)
