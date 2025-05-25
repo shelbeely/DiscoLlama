@@ -8,7 +8,8 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.message_content = True  # Make sure this is enabled!
-
+print(f"discord.py version: {discord.__version__}")
+print(f"discord.Bot exists: {'Bot' in dir(discord)}")
 bot = discord.Bot(intents=intents)
 
 user_model_choice = {}
